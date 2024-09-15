@@ -54,5 +54,4 @@ Execute o programa de decodificação, fornecendo o arquivo binário de entrada 
 
 Você pode visualizar o arquivo `.pgm` gerado no diretório após a execução.
 
-
-Caso encontre problemas ou tenha dúvidas, consulte a documentação adicional ou entre em contato com a equipe de desenvolvimento.
+A lógica detalhada do projeto está melhor explicada [neste link](https://www.notion.so/Projeto-2c043da05bce4541b74c70aeef7a422b?pvs=4).
