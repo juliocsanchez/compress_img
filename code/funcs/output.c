@@ -25,6 +25,7 @@ void pgmToFilebin(PGMImage *img, const char *out_filename, int tolerance) {
     // Grava a largura e altura
     fwrite(&img->width, sizeof(int), 1, bitstream);
     fwrite(&img->height, sizeof(int), 1, bitstream);
+    fwrite(&img->max_gray, sizeof(int), 1, bitstream);
 
     int size = img->width > img->height ? img->width : img->height;
     bitstreamGenerate(img, bitstream, 0, 0, size, tolerance);

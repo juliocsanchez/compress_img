@@ -39,12 +39,13 @@ void decodeBitstream(const char *fileBin, const char *imgOutput)
     fread(&typeFile, sizeof(unsigned char), 1, readFile);
 
     // Lendo as dimensões da imagem
-    int width, height;
+    int width, height,max_gray;
     fread(&width, sizeof(int), 1, readFile);
     fread(&height, sizeof(int), 1, readFile);
+    fread(&max_gray, sizeof(int), 1, readFile);
 
     // Criando uma struct para receber as informações
-    PGMImage *img = allocatePGM(width, height, MAX_GRAY);
+    PGMImage *img = allocatePGM(width, height, max_gray);
 
     // Lendo o arquivo e verificando seu tipo de acordo com a tradução em binaŕio
     if (typeFile == 0x02)
