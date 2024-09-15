@@ -54,16 +54,5 @@ Execute o programa de decodificação, fornecendo o arquivo binário de entrada 
 
 Você pode visualizar o arquivo `.pgm` gerado no diretório após a execução.
 
----
-
-## Observações
-
-- Certifique-se de que os arquivos executáveis (`main.e`) têm permissões de execução. Caso contrário, ajuste as permissões com o comando:
-
-    chmod +x main.e
-
-- O projeto utiliza Makefiles para gerenciar a construção dos executáveis. Certifique-se de que o `make` está instalado no seu sistema.
-
----
 
 Caso encontre problemas ou tenha dúvidas, consulte a documentação adicional ou entre em contato com a equipe de desenvolvimento.
