@@ -24,7 +24,7 @@ void isHomogeneous(PGMImage *img, FILE *bitstream, int x, int y, int size)
     }
 }
 
-// Função recursiva para decodificar o bitstream e reconstruir a imagem
+// Função para
 void decodeBitstream(const char *fileBin, const char *imgOutput)
 {
 
@@ -64,7 +64,7 @@ void decodeBitstream(const char *fileBin, const char *imgOutput)
 
     fclose(readFile);
 
-    // Escreve o cabeçalho do arquivo de saida
+    // Escreve o arquivo de saida
     createPGM(img, imgOutput);
 
     // Liberação de memória

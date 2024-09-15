@@ -38,7 +38,7 @@ void createPGM(PGMImage *img, const char *filename)
         {
             for (int j = 0; j < img->width; j++)
             {
-                fprintf(file, "%d ", img->pixels[i][j]);
+                fprintf(file, "%hhu ", img->pixels[i][j]);
             }
             fprintf(file, "\n");
         }

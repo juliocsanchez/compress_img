@@ -2,7 +2,7 @@
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        printf("Uso: %s <arquivo_bitstream> <arquivo_saida.pgm>\n", argv[0]);
+        printf("Uso: %s <arquivo_bitstream.bin> <arquivo_saida.pgm>\n", argv[0]);
         return 1;
     }
 
