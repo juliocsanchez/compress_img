@@ -2,19 +2,17 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define MAX_GRAY 255
-
-
 typedef struct {
+    char type[3];
     int width;
     int height;
-    int max_gray;
+    int max_gray; // Valor máximo da variação de cinza 
     unsigned char **pixels;
 } PGMImage;
 
-
-void skipComments(FILE *file) {
-    int ch;
+// Função para pular comentários da nossa imagem
+void jumpComments(FILE *file) {
+    int ch; // Utilizando 'int' por causa do 'fgetc' que retorna inteiro. 
     while ((ch = fgetc(file)) == '#') { 
         while (fgetc(file) != '\n');
     }
@@ -23,44 +21,47 @@ void skipComments(FILE *file) {
 
 
 PGMImage* loadPGM(const char *filename) {
-    FILE *file = fopen(filename, "rb");
+
+    FILE *file = fopen(filename, "rb");// O ponteiro '*file' agora recebe o arquivo aberto
+
     if (!file) {
         printf("Erro ao abrir o arquivo.\n");
         return NULL;
     }
 
-    PGMImage *img = (PGMImage *)malloc(sizeof(PGMImage));
+    PGMImage *img = (PGMImage *)malloc(sizeof(PGMImage)); //Ponteiro para a nossa struct PGMImage
     
-   
-    char pgmType[3];
-    skipComments(file);
-    fscanf(file, "%2s\n", pgmType);
+    jumpComments(file);
+    fscanf(file, "%2s\n", img->type); //Armazena o tipo do arquivo
     
-    if (pgmType[0] != 'P' || (pgmType[1] != '2' && pgmType[1] != '5')) {
+    //Verificação se o arquivo é P2 ou P5
+    if (img->type[0] != 'P' || (img->type[1] != '2' && img->type[1] != '5')) {
         printf("Formato PGM inválido. Apenas P2 e P5 são suportados.\n");
         fclose(file);
         free(img);
         return NULL;
     }
 
-    skipComments(file);
-    fscanf(file, "%d %d\n", &img->width, &img->height);
-    
-    skipComments(file);
-    fscanf(file, "%d\n", &img->max_gray);
 
-    img->pixels = (unsigned char **)malloc(img->height * sizeof(unsigned char *));
+    jumpComments(file); // Pular possivéis comentários ao lado do cabeçalho
+    fscanf(file, "%d %d\n", &img->width, &img->height); // Armazenar altura e largura
+    
+    jumpComments(file); // Pular possíveis comentários após da altura e largura
+    fscanf(file, "%d\n", &img->max_gray);// Ler máxima luminecência
+
+
+    //Alocar espaço para o ponteiro contido na struct PGMImage
+    img->pixels = (unsigned char **)malloc(img->height * sizeof(unsigned char *)); 
     for (int i = 0; i < img->height; i++) {
         img->pixels[i] = (unsigned char *)malloc(img->width * sizeof(unsigned char));
     }
 
-    if (pgmType[1] == '5') {
-        
+    // O programa visa alterar a maneira de ler o arquivo de acordo com o tipo da mesma(Binária ou texto)
+    if (img->type[1] == '5') {
         for (int i = 0; i < img->height; i++) {
-            fread(img->pixels[i], sizeof(unsigned char), img->width, file);
+            fread(img->pixels[i], sizeof(unsigned char), img->width, file);//Lê o pixel de cada linha 
         }
-    } else if (pgmType[1] == '2') {
-       
+    } else if (img->type[1] == '2') {
         for (int i = 0; i < img->height; i++) {
             for (int j = 0; j < img->width; j++) {
                 int pixel;
@@ -75,78 +76,93 @@ PGMImage* loadPGM(const char *filename) {
 }
 
 
+// Função para verificar se o quadrante é homogêneo
 int isHomogeneous(PGMImage *img, int x, int y, int size, int tolerance) {
-    if (x + size > img->width || y + size > img->height) {
-        return 0;  
-    }
-    unsigned char first_pixel = img->pixels[y][x];
+    unsigned char first_pixel = img->pixels[y][x]; // Armazena o primeiro pixel do quadrante
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < size; j++) {
-            if (y + i >= img->height || x + j >= img->width) continue; 
-            if (abs(img->pixels[y + i][x + j] - first_pixel) > tolerance) {
-                return 0;
+            if (abs(img->pixels[y + i][x + j] - first_pixel) > tolerance) { //Método do Max e mínimo
+                return 0; //Não homogênea
             }
         }
     }
-    return 1; 
+    return 1; // Homogênea
 }
 
-
-unsigned char averageGray(PGMImage *img, int x, int y, int size) {
+//Função para saber o tom de cinza daquele quadrante
+unsigned char grayTone(PGMImage *img, int x, int y, int size) {
     int total = 0, count = 0;
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < size; j++) {
             if (y + i < img->height && x + j < img->width) {
-                total += img->pixels[y + i][x + j];
+                // Calcula a soma dos valores de cada pixel naquela região em específica 
+                total += img->pixels[y + i][x + j]; 
+                //Calcula quantos pixels tem naquela região
                 count++;
             }
         }
     }
-    return total / count;
+    return total / count; // Retorna a média do tom de cinza daquela região
 }
 
+//Função para gerar bitstream
+void bitstreamGenerate(PGMImage *img, FILE *output, int x, int y, int size, int tolerance) {
 
-void quadtreeCompressToBitstream(PGMImage *img, FILE *bitstream, int x, int y, int size, int tolerance) {
     if (isHomogeneous(img, x, y, size, tolerance)) {
 
-        fputc(1, bitstream);
-        unsigned char avg_gray = averageGray(img, x, y, size);
-        fputc(avg_gray, bitstream);
+        fputc(1, output);// Se for homogêneo, escreve 1 no arquivo de saída
+        unsigned char tone = grayTone(img, x, y, size);// Calcula o tom de cinza do quadrante
+        fputc(tone, output);//Escreve o tom no arquivo de saída
+
     } else {
      
-        fputc(0, bitstream);
-        int half = size / 2;
+        fputc(0, output); //Indica que vai ser dividido para o arquivo de sáida
+        int half = size / 2; // A cada quadrante 'filho' ele percorre a metade do tamanho do quadrante 'pai'
 
+        // Verifica se ainda há possibilidade de divisão do respectivo quadrante
         if (half > 0) {
-            quadtreeCompressToBitstream(img, bitstream, x, y, half, tolerance);              // Quadrante superior esquerdo
-            quadtreeCompressToBitstream(img, bitstream, x + half, y, half, tolerance);       // Quadrante superior direito
-            quadtreeCompressToBitstream(img, bitstream, x, y + half, half, tolerance);       // Quadrante inferior esquerdo
-            quadtreeCompressToBitstream(img, bitstream, x + half, y + half, half, tolerance); // Quadrante inferior direito
+            bitstreamGenerate(img, output, x, y, half, tolerance);// Quadrante superior esquerdo
+            bitstreamGenerate(img, output, x + half, y, half, tolerance); // Quadrante superior direito
+            bitstreamGenerate(img, output, x, y + half, half, tolerance); // Quadrante inferior esquerdo
+            bitstreamGenerate(img, output, x + half, y + half, half, tolerance); // Quadrante inferior direito
         } else {
-    
-            fputc(1, bitstream);
-            fputc(img->pixels[y][x], bitstream);
+            fputc(1, output);
+            fputc(img->pixels[y][x], output);
         }
     }
 }
 
-
-void compressPGMToBitstream(PGMImage *img, const char *output_filename, int tolerance) {
-    FILE *bitstream = fopen(output_filename, "wb");
+// Pega o arquivo de entrada e gera o arquivo de saída '.bin' contendo o bitstream 
+void pgmToFilebin(PGMImage *img, const char *out_filename, int tolerance) {
+    FILE *bitstream = fopen(out_filename, "wb");
     if (!bitstream) {
         printf("Erro ao criar o arquivo de bitstream.\n");
         return;
     }
 
+    // Gravar o tipo do arquivo como um valor binário
+    unsigned char typeBin;
+    if (img->type[1] == '2') {
+        typeBin = 0x02; // Representação binária para P2
+    } else if (img->type[1] == '5') {
+        typeBin = 0x05; // Representação binária para P5
+    } else {
+        printf("Formato PGM inválido.\n");
+        fclose(bitstream);
+        return;
+    }
+
+    fwrite(&typeBin, sizeof(unsigned char), 1, bitstream); // Escreve o tipo como binário
+
+    // Grava a largura e altura
     fwrite(&img->width, sizeof(int), 1, bitstream);
     fwrite(&img->height, sizeof(int), 1, bitstream);
 
-    int size = img->width > img->height ? img->width : img->height; 
-    quadtreeCompressToBitstream(img, bitstream, 0, 0, size, tolerance);
+    int size = img->width > img->height ? img->width : img->height;
+    bitstreamGenerate(img, bitstream, 0, 0, size, tolerance);
 
     fclose(bitstream);
 }
-
 
 void freePGM(PGMImage *img) {
     for (int i = 0; i < img->height; i++) {
@@ -170,7 +186,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    compressPGMToBitstream(img, argv[2], tolerance);
+    pgmToFilebin(img, argv[2], tolerance);
 
     freePGM(img);
 

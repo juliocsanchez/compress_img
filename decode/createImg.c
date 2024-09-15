@@ -6,6 +6,7 @@
 
 // Estrutura para armazenar a imagem
 typedef struct {
+    char type[3];
     int width;
     int height;
     int max_gray;
@@ -36,10 +37,22 @@ void savePGM(PGMImage *img, const char *filename) {
         return;
     }
 
-    fprintf(file, "P5\n%d %d\n%d\n", img->width, img->height, img->max_gray);
-
-    for (int i = 0; i < img->height; i++) {
-        fwrite(img->pixels[i], sizeof(unsigned char), img->width, file);
+    // Verificar o tipo da imagem e salvar de acordo
+    if (img->type[1] == '2') {
+        // Formato P2 (ASCII)
+        fprintf(file, "P2\n%d %d\n%d\n", img->width, img->height, img->max_gray);
+        for (int i = 0; i < img->height; i++) {
+            for (int j = 0; j < img->width; j++) {
+                fprintf(file, "%d ", img->pixels[i][j]);
+            }
+            fprintf(file, "\n");
+        }
+    } else if (img->type[1] == '5') {
+        // Formato P5 (Binário)
+        fprintf(file, "P5\n%d %d\n%d\n", img->width, img->height, img->max_gray);
+        for (int i = 0; i < img->height; i++) {
+            fwrite(img->pixels[i], sizeof(unsigned char), img->width, file);
+        }
     }
 
     fclose(file);
@@ -57,7 +70,7 @@ void fillRegion(PGMImage *img, int x, int y, int size, unsigned char value) {
 // Função recursiva para decodificar o bitstream e reconstruir a imagem
 void decodeBitstreamToImage(PGMImage *img, FILE *bitstream, int x, int y, int size) {
     int flag = fgetc(bitstream);  // Lê o próximo bit do arquivo (0 ou 1)
-    
+
     if (flag == 1) {
         // Região homogênea: lê o valor do tom de cinza
         unsigned char gray_value = fgetc(bitstream);
@@ -80,12 +93,26 @@ void decodeBitstream(const char *bitstream_filename, const char *output_filename
         return;
     }
 
+    // Lê o tipo de arquivo como um valor binário
+    unsigned char type_code;
+    fread(&type_code, sizeof(unsigned char), 1, bitstream);
+
     // Lê a largura e a altura do bitstream
     int width, height;
     fread(&width, sizeof(int), 1, bitstream);
     fread(&height, sizeof(int), 1, bitstream);
 
     PGMImage *img = createPGM(width, height, MAX_GRAY);
+
+    // Mapear o valor binário de volta para 'P2' ou 'P5'
+    if (type_code == 0x02) {
+        img->type[0] = 'P';
+        img->type[1] = '2';
+    } else if (type_code == 0x05) {
+        img->type[0] = 'P';
+        img->type[1] = '5';
+    }
+    img->type[2] = '\0';
 
     // Começa a decodificar o bitstream e reconstruir a imagem
     int size = width > height ? width : height; // Tamanho máximo
@@ -115,4 +142,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
